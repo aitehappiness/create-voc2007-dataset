@@ -5,20 +5,17 @@ __author__ = "peic"
 import xml.dom
 import xml.dom.minidom
 import os
-
+import argparse
+from os.path import join
 from PIL import Image
 
-'''
-根据下面的路径和文件，将output.txt制作成xml的标注
-'''
 
 # xml文件规范定义
 _INDENT = ' ' * 4
 _NEW_LINE = '\n'
 _FOLDER_NODE = 'VOC2007'
 _ROOT_NODE = 'annotation'
-_DATABASE_NAME = 'INRIA'
-_CLASS = 'person'
+_DATABASE_NAME = 'TERROR-DETECT-V0.53'
 _ANNOTATION = 'PASCAL VOC2007'
 _AUTHOR = 'Peic'
 
@@ -26,10 +23,6 @@ _SEGMENTED = '0'
 _DIFFICULT = '0'
 _TRUNCATED = '0'
 _POSE = 'Unspecified'
-
-_IMAGE_PATH = 'JPEGImages'
-_TXT_PATH = 'output.txt'
-_ANNOTATION_SAVE_PATH = 'Annotations'
 
 _IMAGE_CHANNEL = 3
 
@@ -54,6 +47,7 @@ def createChildNode(doc, tag, attr, parent_node):
     child_node = createElementNode(doc, tag, attr)
     parent_node.appendChild(child_node)
 
+
 # object节点比较特殊
 def createObjectNode(doc, attrs):
     object_node = doc.createElement('object')
@@ -71,12 +65,12 @@ def createObjectNode(doc, attrs):
 
     return object_node
 
+
 # 将documentElement写入XML文件中
 def writeXMLFile(doc, filename):
     tmpfile = open('tmp.xml', 'w')
     doc.writexml(tmpfile, addindent=' '*4, newl='\n', encoding='utf-8')
     tmpfile.close()
-
 
     # 删除第一行默认添加的标记
     fin = open('tmp.xml')
@@ -91,6 +85,7 @@ def writeXMLFile(doc, filename):
     #fout.write(new_lines)
     fin.close()
     fout.close()
+
 
 # 创建XML文档并写入节点信息
 def createXMLFile(attrs, width, height, filename):
@@ -141,54 +136,83 @@ def createXMLFile(attrs, width, height, filename):
     # 写入文件
     writeXMLFile(doc, filename)
 
-if __name__ == "__main__":
 
-    ouput_file = open(_TXT_PATH)
+def line2xml(line):
+    array = line.split()
+    attrs = {
+        'name': array[0],
+        'classification': _CLASS_MAP[array[1]],
+        'xmin': array[2],
+        'ymin': array[3],
+        'xmax': array[4],
+        'ymax': array[5]
+    }
+
+    # 构建XML文件名称
+    xml_file_name = os.path.join(_ANNOTATION_SAVE_PATH, (attrs['name'].split('.'))[0] + '.xml')
+    print xml_file_name
+
+    if os.path.exists(xml_file_name):
+        # print('do exists')
+        existed_doc = xml.dom.minidom.parse(xml_file_name)
+        root_node = existed_doc.documentElement
+
+        # 如果XML存在了, 添加object节点信息即可
+        object_node = createObjectNode(existed_doc, attrs)
+        root_node.appendChild(object_node)
+
+        # 写入文件
+        writeXMLFile(existed_doc, xml_file_name)
+    else:
+        # print('not exists')
+        # 如果XML文件不存在, 创建文件并写入节点信息
+        img_name = attrs['name']
+        img_path = os.path.join(current_dirpath, _IMAGE_PATH, img_name)
+        # 获取图片信息
+        img = Image.open(img_path)
+        width, height = img.size
+        img.close()
+
+        # 创建XML文件
+        createXMLFile(attrs, width, height, xml_file_name)
+
+
+def parse_args():
+    """Parse input arguments."""
+    parser = argparse.ArgumentParser(description='convert labelbyline to xml following voc')
+    parser.add_argument('--classmap',
+                        dest='classmap',
+                        help='classmap conf for labelbyline',
+                        type=str)
+
+    parser.add_argument('--vocpath',
+                        dest='vocpath',
+                        help='vocpath for data generate',
+                        type=str)
+
+    parser.add_argument('--labelbyline',
+                        dest='labelbyline',
+                        help='label which include label by line',
+                        type=str)
+
+    args = parser.parse_args()
+    return args
+
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    with open('classmap.conf') as conf_f: _CLASS_MAP = eval(conf_f.read())
+    print _CLASS_MAP
+    _IMAGE_PATH = join(args.vocpath, 'JPEGImages')
+    _ANNOTATION_SAVE_PATH = join(args.vocpath, 'Annotations')
+    _LABELBYLINE_PATH = args.labelbyline
+
     current_dirpath = os.path.dirname(os.path.abspath('__file__'))
 
     if not os.path.exists(_ANNOTATION_SAVE_PATH):
         os.mkdir(_ANNOTATION_SAVE_PATH)
 
-    lines = ouput_file.readlines()
+    lines = open(_LABELBYLINE_PATH).readlines()
     for line in lines:
-        s = line.rstrip('\n')
-        array = s.split()
-        print
-        attrs = dict()
-        attrs['name'] = array[0]
-        attrs['classification'] = _CLASS
-        attrs['xmin'] = array[1]
-        attrs['ymin'] = array[2]
-        attrs['xmax'] = array[3]
-        attrs['ymax'] = array[4]
-
-        # 构建XML文件名称
-        xml_file_name = os.path.join(_ANNOTATION_SAVE_PATH, (attrs['name'].split('.'))[0] + '.xml')
-        print xml_file_name
-
-        if os.path.exists( xml_file_name):
-            # print('do exists')
-            existed_doc = xml.dom.minidom.parse(xml_file_name)
-            root_node = existed_doc.documentElement
-            
-            # 如果XML存在了, 添加object节点信息即可
-            object_node = createObjectNode(existed_doc, attrs)
-            root_node.appendChild(object_node)
-
-            # 写入文件
-            writeXMLFile(existed_doc, xml_file_name)
-            
-        else:
-            # print('not exists')
-            # 如果XML文件不存在, 创建文件并写入节点信息
-            img_name = attrs['name']
-            img_path = os.path.join(current_dirpath, _IMAGE_PATH, img_name)
-            # 获取图片信息
-            img = Image.open(img_path)
-            width, height = img.size
-            img.close()
-            
-            # 创建XML文件
-            createXMLFile(attrs, width, height, xml_file_name)
-
-
+        line2xml(line.rstrip('\n'))
