@@ -1,21 +1,50 @@
-## VOC2007数据集制作(以INRIA数据集为例)
+# labelx2voc
+## 转换labelx json数据格式为voc格式
 
-**使用**
+## Usage
+### input format
+labelx jsonlist file
+### output format
+same with voc(2007/2012) datasets
+```
+<vocdirname>
+├── Annotations
+│   ├── 000000.xml
+│   ├── 000001.xml
+│   ├── 000002.xml
+│   └── ...
+├── ImageSets
+│   ├── Main
+│   │   ├── test.txt
+│   │   ├── train.txt
+│   │   ├── trainval.txt
+│   │   └── val.txt
+├── JPEGImages
+│   ├── 000000.jpg
+│   ├── 000001.jpg
+│   ├── 000002.jpg
+│   └── ...
+```
 
-1. 首先在`create_JPEGImages.py`中设置好：
 
-    * `TRAIN_ANNO` : Train数据的标注文件夹路径 
-    * `TEST_ANNO` : Test数据的标注文件夹路径 
-    * `ORIGIN_IMAGES` : 图片的文件夹路径 
+### step 1
+```python
+cd <labelx2voc>/cvt2voc
 
-* 使用`create_JPEGImages.py`来遍历，生成`JPEGImages`文件夹，图片名称为VOC2007的6位编号，JPEG格式。将提取的标注信息保存在`output.txt`文件中
-
-2. 使用`create_Annotations.py`文件，利用1中生成`output.txt`标注信息来生成VOC2007格式的`xml`文件，保存在`JPEGImages`文件夹中
-3. 使用`create_ImageSets.py`来生成`ImagesSets`文件夹
-4. 将生成的`JPEGImages`，`JPEGImages`，`ImagesSets`替换掉VOC2007中的五个文件夹，制作完成
+python cvt2labelbyline.py jsonlist_file
+```
 
 
-**注意**
+### step 2
+```python
+cd <labelx2voc>/cvt2voc
 
-* 不同数据集标注格式、路径均不一样，需要适当修改
-* 不同数据集的`trainval.txt`和`test.txt`也不一样，需要自己设置
+python labelbyline2xml.py --classmap <test.classmap> --vocpath <vocpath> --labelbyline <labelbyline_file>
+```
+
+### step 3
+```python
+cd <labelx2voc>/cvt2voc
+
+python gen_imagesets.py
+```
