@@ -26,6 +26,12 @@ same with voc(2007/2012) datasets
 │   └── ...
 ```
 
+### step 0
+```python
+cd <labelx2voc>/fetch
+
+python fetchimg.py --jsonlist jsonlist_file --vocpath <vocpath>
+```
 
 ### step 1
 ```python

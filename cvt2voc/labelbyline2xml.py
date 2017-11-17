@@ -15,7 +15,7 @@ _INDENT = ' ' * 4
 _NEW_LINE = '\n'
 _FOLDER_NODE = 'VOC2007'
 _ROOT_NODE = 'annotation'
-_DATABASE_NAME = 'TERROR-DETECT-V0.53'
+_DATABASE_NAME = 'TERROR-DETECT'
 _ANNOTATION = 'PASCAL VOC2007'
 _AUTHOR = 'Peic'
 
@@ -139,6 +139,8 @@ def createXMLFile(attrs, width, height, filename):
 
 def line2xml(line):
     array = line.split()
+    print line
+    print array
     attrs = {
         'name': array[0],
         'classification': _CLASS_MAP[array[1]],
@@ -202,7 +204,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    with open('classmap.conf') as conf_f: _CLASS_MAP = eval(conf_f.read())
+    with open(args.classmap) as conf_f: _CLASS_MAP = eval(conf_f.read())
     print _CLASS_MAP
     _IMAGE_PATH = join(args.vocpath, 'JPEGImages')
     _ANNOTATION_SAVE_PATH = join(args.vocpath, 'Annotations')
@@ -216,3 +218,5 @@ if __name__ == "__main__":
     lines = open(_LABELBYLINE_PATH).readlines()
     for line in lines:
         line2xml(line.rstrip('\n'))
+
+    os.remove('tmp.xml')
